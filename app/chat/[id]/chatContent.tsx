@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { auth } from "../../../lib/auth";
+import { getConversation, loadChat } from "../../../lib/chat";
+import Chat from "../../components/new-chat";
 
-import { auth } from "../../lib/auth";
-import { getConversation, loadChat } from "../../lib/chat";
-import Chat from "../components/new-chat";
 
 interface PageProps {
   params: Promise<{ id: string }>;

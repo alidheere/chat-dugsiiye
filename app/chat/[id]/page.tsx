@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import ChatContent from "../chatContent";
+import ChatContent from "./chatContent";
 
 interface PageProps {
   params: Promise<{ id: string }>;
