@@ -20,7 +20,7 @@ const LoginPage = () => {
     .then(() => {
         setError("")
         setSuccess("Login successful")
-        redirect('/')
+        redirect('/chat')
        
     })
     .catch((error) => {

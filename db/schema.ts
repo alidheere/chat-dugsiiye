@@ -4,16 +4,15 @@ import { relations } from "drizzle-orm";
 import {
   pgTable,
   pgEnum,
-  uuid,
   text,
   timestamp,
   index,
   boolean,
 } from "drizzle-orm/pg-core";
 
-
+// ========================================
 // MESSAGE ROLE ENUM
-
+// ========================================
 
 export const messageRoleEnum = pgEnum("message_role", [
   "user",
@@ -22,77 +21,111 @@ export const messageRoleEnum = pgEnum("message_role", [
   "tool",
 ]);
 
-
+// ========================================
 // USER TABLE (BETTER AUTH)
-
+// ========================================
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
+
   name: text("name").notNull(),
+
   email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
+
+  emailVerified: boolean("email_verified")
+    .default(false)
+    .notNull(),
+
   image: text("image"),
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
 });
 
-
+// ========================================
 // SESSION TABLE
-
+// ========================================
 
 export const session = pgTable(
   "session",
   {
     id: text("id").primaryKey(),
+
     expiresAt: timestamp("expires_at").notNull(),
+
     token: text("token").notNull().unique(),
 
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
 
     ipAddress: text("ip_address"),
+
     userAgent: text("user_agent"),
 
     userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+      .references(() => user.id, {
+        onDelete: "cascade",
+      }),
   },
   (table) => [
     index("session_userId_idx").on(table.userId),
   ]
 );
 
-
+// ========================================
 // ACCOUNT TABLE
-
+// ========================================
 
 export const account = pgTable(
   "account",
   {
     id: text("id").primaryKey(),
+
     accountId: text("account_id").notNull(),
+
     providerId: text("provider_id").notNull(),
 
     userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+      .references(() => user.id, {
+        onDelete: "cascade",
+      }),
 
     accessToken: text("access_token"),
+
     refreshToken: text("refresh_token"),
+
     idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at"),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+
+    accessTokenExpiresAt: timestamp(
+      "access_token_expires_at"
+    ),
+
+    refreshTokenExpiresAt: timestamp(
+      "refresh_token_expires_at"
+    ),
+
     scope: text("scope"),
+
     password: text("password"),
 
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())
@@ -103,43 +136,55 @@ export const account = pgTable(
   ]
 );
 
-
+// ========================================
 // VERIFICATION TABLE
-
+// ========================================
 
 export const verification = pgTable(
   "verification",
   {
     id: text("id").primaryKey(),
+
     identifier: text("identifier").notNull(),
+
     value: text("value").notNull(),
+
     expiresAt: timestamp("expires_at").notNull(),
 
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [
-    index("verification_identifier_idx").on(table.identifier),
+    index("verification_identifier_idx").on(
+      table.identifier
+    ),
   ]
 );
 
-
+// ========================================
 // CONVERSATIONS TABLE
+// ========================================
 
-
-export const conversations = pgTable(
+export const conversation = pgTable(
   "conversations",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: text("id").primaryKey(),
 
-    title: text("title").default("New Chat"),
+    title: text("title")
+      .notNull()
+      .default("new conversation"),
 
     userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+      .references(() => user.id, {
+        onDelete: "cascade",
+      }),
 
     createdAt: timestamp("created_at")
       .defaultNow()
@@ -155,18 +200,18 @@ export const conversations = pgTable(
   ]
 );
 
-
+// ========================================
 // MESSAGES TABLE
-
+// ========================================
 
 export const messages = pgTable(
   "messages",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: text("id").primaryKey(),
 
-    conversationId: uuid("conversation_id")
+    conversationId: text("conversation_id")
       .notNull()
-      .references(() => conversations.id, {
+      .references(() => conversation.id, {
         onDelete: "cascade",
       }),
 
@@ -179,50 +224,64 @@ export const messages = pgTable(
       .notNull(),
   },
   (table) => [
-    index("message_conversation_idx").on(table.conversationId),
+    index("message_conversation_idx").on(
+      table.conversationId
+    ),
   ]
 );
 
-
+// ========================================
 // USER RELATIONS
+// ========================================
 
+export const userRelations = relations(
+  user,
+  ({ many }) => ({
+    sessions: many(session),
 
-export const userRelations = relations(user, ({ many }) => ({
-  sessions: many(session),
-  accounts: many(account),
-  conversations: many(conversations),
-}));
+    accounts: many(account),
 
+    conversations: many(conversation),
+  })
+);
 
+// ========================================
 // SESSION RELATIONS
+// ========================================
 
+export const sessionRelations = relations(
+  session,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [session.userId],
+      references: [user.id],
+    }),
+  })
+);
 
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, {
-    fields: [session.userId],
-    references: [user.id],
-  }),
-}));
-
-
+// ========================================
 // ACCOUNT RELATIONS
+// ========================================
 
+export const accountRelations = relations(
+  account,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [account.userId],
+      references: [user.id],
+    }),
+  })
+);
 
-export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, {
-    fields: [account.userId],
-    references: [user.id],
-  }),
-}));
-
+// ========================================
 // CONVERSATION RELATIONS
-
+// ========================================
 
 export const conversationRelations = relations(
-  conversations,
+  conversation,
   ({ one, many }) => ({
     user: one(user, {
-      fields: [conversations.userId],
+      fields: [conversation.userId],
       references: [user.id],
     }),
 
@@ -230,23 +289,55 @@ export const conversationRelations = relations(
   })
 );
 
-
+// ========================================
 // MESSAGE RELATIONS
+// ========================================
+
+export const messageRelations = relations(
+  messages,
+  ({ one }) => ({
+    conversation: one(conversation, {
+      fields: [messages.conversationId],
+      references: [conversation.id],
+    }),
+  })
+);
+
+export const generatedImages = pgTable(
+  "generated_images",
+  {
+    id: text("id").primaryKey(),
+
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    prompt: text("prompt").notNull(),
+
+    imageUrl: text("image_url").notNull(),
+
+    publicId: text("public_id").notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("generated_image_user_idx").on(table.userId),
+  ]
+);
 
 
-export const messageRelations = relations(messages, ({ one }) => ({
-  conversation: one(conversations, {
-    fields: [messages.conversationId],
-    references: [conversations.id],
-  }),
-}));
-
+// ========================================
+// SCHEMA EXPORT
+// ========================================
 
 export const schema = {
   user,
   session,
   account,
   verification,
-  conversations,
+  conversation,
   messages,
+  generatedImages
 };
